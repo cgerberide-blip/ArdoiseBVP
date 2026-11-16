@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="fr">
+<link rel="manifest" href="manifest.json">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ardoise BVP</title>
+
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f8;
+            margin: 0;
+            padding: 15px;
+            padding-bottom: 90px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        h2 {
+            margin-top: 0;
+            color: #444;
+        }
+
+        h3 {
+            color: #1976d2;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+        button {
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        #zoneProduits button {
+
+            background-color: #1976d2;
+
+            color: white;
+
+            height: 65px;
+
+            width: 100%;
+
+            margin: 0;
+        }
+
+        #zoneProduits {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(
+                    auto-fit,
+                    minmax(110px, 1fr)
+                );
+
+            gap: 8px;
+        }
+
+        #zoneProduits button:hover {
+            background-color: #1565c0;
+        }
+
+        #total {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1976d2;
+            margin-top: 15px;
+        }
+
+        .consommation {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .consommation button {
+            background-color: #d32f2f;
+            color: white;
+            padding: 4px 8px;
+        }
+
+        #recapPaiement div {
+            padding: 6px;
+        }
+
+        input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+        }
+
+        #historique div {
+            padding: 6px;
+            border-bottom: 1px solid #eee;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .paiement {
+            background-color: #2e7d32;
+            color: white;
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        #navigation {
+
+            position: fixed;
+
+            bottom: 0;
+
+            left: 0;
+
+            right: 0;
+
+            display: flex;
+
+            background: white;
+
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.15);
+
+            padding: 5px;
+
+            z-index: 1000;
+        }
+
+        #navigation button {
+
+            flex: 1;
+
+            background: none;
+
+            color: #1976d2;
+
+            min-height: 60px;
+
+            font-size: 12px;
+
+            font-weight: bold;
+
+            border-right: 1px solid #d0d0d0;
+
+            margin: 0;
+        }
+
+        #navigation button:last-child {
+
+            border-right: none;
+        }
+
+        .ligne-produit {
+
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+            padding: 8px;
+
+            border-bottom: 1px solid #eee;
+        }
+
+        .actions-gauche,
+        .actions-droite {
+
+            display: flex;
+
+            gap: 4px;
+        }
+
+        .nom-produit {
+
+            flex: 1;
+
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+
+        .details-paiement {
+
+            margin-left: 24px;
+
+            padding-left: 12px;
+
+            border-left: 3px solid #1976d2;
+        }
+
+        .onglet-actif {
+
+            background-color: #1976d2 !important;
+
+            color: white !important;
+        }
+
+        @media (max-width: 600px) {
+
+                        body {
+                padding: 10px;
+            }
+
+        }
+
+    </style>
+
+</head>
+<body>
+
+    <h1>🃏 Ardoise BVP</h1>
+
+    <div id="navigation">
+
+        <button onclick="afficherOnglet('conso')">
+            ➕<br>Conso
+        </button>
+
+        <button onclick="afficherOnglet('payer')">
+            💰<br>À payer
+        </button>
+
+        <button onclick="afficherOnglet('historique')">
+            📜<br>Historique
+        </button>
+
+        <button onclick="afficherOnglet('produits')">
+            ⚙️<br>Produits
+        </button>
+
+    </div>
+
+
+    <div class="section" id="ongletConso">
+
+        <h2>Ajouter une consommation</h2>
+
+        <div id="zoneProduits"></div>
+
+        <hr>
+
+        <h2>Consommations</h2>
+
+        <div id="listeConsommations"></div>
+
+    </div>
+    
+
+    <div class="section" id="ongletProduits">
+
+        <h2>Gestion des produits</h2>
+
+        <input
+            type="text"
+            id="nomProduit"
+            placeholder="Nom du produit">
+
+        <input
+            type="number"
+            id="prixProduit"
+            placeholder="Prix">
+
+        <input
+            type="text"
+            id="emojiProduit"
+            placeholder="Emoji">
+
+        <button onclick="ajouterNouveauProduit()">
+            Ajouter
+        </button>
+
+        <div id="listeProduits"></div>
+
+    
+
+    </div>
+
+    
+    <div class="section" id="ongletHistorique">
+
+        <h2>Historique des paiements</h2>
+
+        <div id="historique">
+
+        </div>
+    </div>
+    
+    
+    <div class="section" id="ongletPayer">
+
+        <h2>À payer</h2>
+
+        <div id="recapPaiement">
+
+        </div>
+
+        <hr>
+
+        <div id="totalAPayer"></div>
+
+        <br>
+
+        <button
+            class="paiement"
+            onclick="effectuerPaiement()">
+
+            ✅ Paiement effectué
+
+        </button>
+
+    </div>
+   
+    
+
+        <script>
+
+        let consommations = [];
+
+        let historiquePaiements = [];
+
+        let produits = [];
+
+        const produitsParDefaut = [
+
+            {
+                nom: "Pinte",
+                prix: 5,
+                emoji: "🍺"
+            },
+
+            {
+                nom: "Sandwich",
+                prix: 4.5,
+                emoji: "🥪"
+            },
+
+            {
+                nom: "Café",
+                prix: 1,
+                emoji: "☕"
+            },
+
+            {
+                nom: "Plat du jour",
+                prix: 12,
+                emoji: "🍽️"
+            },
+
+            {
+                nom: "Vin rouge",
+                prix: 3.5,
+                emoji: "🍷"
+            },
+
+            {
+                nom: "Croque-monsieur",
+                prix: 4.5,
+                emoji: "🥪"
+            },
+
+            {
+                nom: "Soda",
+                prix: 2.8,
+                emoji: "🥤"
+            },
+
+        ];
+
+        function formaterDate(dateTexte) {
+
+            const [annee, mois, jour] =
+                dateTexte.split("-");
+
+            return jour + "/" + mois + "/" + annee;
+        }
+
+        function formaterMontant(montant) {
+
+            return montant.toFixed(2).replace(".", ",");
+        }
+
+
+        function ajouterProduit(nom, prix) {
+
+    const aujourdHui = new Date();
+
+    const dateTexte =
+        aujourdHui.getFullYear() +
+        "-" +
+        String(aujourdHui.getMonth() + 1).padStart(2, "0") +
+        "-" +
+        String(aujourdHui.getDate()).padStart(2, "0");
+
+    consommations.push({
+        id: Date.now(),
+        nom: nom,
+        prix: prix,
+        date: dateTexte
+    });
+
+    sauvegarder();
+
+    afficher();
+        }
+
+        function sauvegarder() {
+
+            localStorage.setItem(
+                "consommations",
+                JSON.stringify(consommations)
+            );
+
+            localStorage.setItem(
+                "historiquePaiements",
+                JSON.stringify(historiquePaiements)
+            );
+
+            localStorage.setItem(
+                "produits",
+                JSON.stringify(produits)
+            );
+
+        }
+
+        function charger() {
+
+            const donnees =
+                localStorage.getItem("consommations");
+
+            if (donnees) {
+                consommations = JSON.parse(donnees);
+            }
+
+            const historique =
+                localStorage.getItem("historiquePaiements");
+
+            if (historique) {
+                historiquePaiements = JSON.parse(historique);
+            }
+
+            const produitsStockes =
+                localStorage.getItem("produits");
+
+            if (produitsStockes) {
+                produits = JSON.parse(produitsStockes);
+            } 
+            else {
+                produits = produitsParDefaut;
+            }
+
+        }
+
+        function afficherProduits() {
+
+            const zone =
+                document.getElementById("zoneProduits");
+
+            zone.innerHTML = "";
+
+            produits.forEach(function(produit) {
+
+                const bouton =
+                    document.createElement("button");
+
+                bouton.textContent =
+                    produit.emoji +
+                    " " +
+                    produit.nom;
+
+                bouton.onclick = function() {
+
+                    ajouterProduit(
+                        produit.nom,
+                        produit.prix
+                    );
+
+                };
+
+                zone.appendChild(bouton);
+
+            });
+
+        }
+
+        function ajouterNouveauProduit() {
+
+            const nom =
+                document.getElementById("nomProduit").value;
+
+            const prix =
+                parseFloat(
+                    document.getElementById("prixProduit").value
+                );
+
+            const emoji =
+                document.getElementById("emojiProduit").value;
+
+            if (!nom || isNaN(prix)) {
+
+                alert("Nom ou prix invalide.");
+
+                return;
+            }
+
+            produits.push({
+                nom: nom,
+                prix: prix,
+                emoji: emoji || "🛒"
+            });
+
+            sauvegarder();
+
+            afficherProduits();
+
+            afficherListeProduits();
+
+            document.getElementById(
+                "nomProduit"
+            ).value = "";
+
+            document.getElementById(
+                "prixProduit"
+            ).value = "";
+
+            document.getElementById(
+                "emojiProduit"
+            ).value = "";
+        }
+
+        function afficherListeProduits() {
+
+            const zone =
+                document.getElementById("listeProduits");
+
+            zone.innerHTML = "";
+
+            produits.forEach(function(produit, index) {
+
+                const ligne =
+                    document.createElement("div");
+
+                ligne.className = "ligne-produit";
+
+                ligne.innerHTML =
+
+                    "<div class='actions-gauche'>" +
+
+                        "<button onclick='monterProduit(" +
+                        index +
+                        ")'>⬆️</button>" +
+
+                        "<button onclick='descendreProduit(" +
+                        index +
+                        ")'>⬇️</button>" +
+
+                    "</div>" +
+
+                    "<div class='nom-produit'>" +
+
+                        produit.emoji +
+                        " " +
+                        produit.nom +
+                        " (" +
+                        formaterMontant(produit.prix) +
+                        " €)" +
+
+                    "</div>" +
+
+                    "<div class='actions-droite'>" +
+
+                        "<button onclick='modifierProduit(" +
+                        index +
+                        ")'>✏️</button>" +
+
+                        "<button onclick='supprimerProduit(" +
+                        index +
+                        ")'>❌</button>" +
+
+                    "</div>";
+
+                zone.appendChild(ligne);
+
+            });
+
+        }
+
+        function modifierProduit(index) {
+
+            const produit = produits[index];
+
+            const nouveauNom =
+                prompt(
+                    "Nom du produit :",
+                    produit.nom
+                );
+
+            if (nouveauNom === null) {
+                return;
+            }
+
+            const nouveauPrix =
+                prompt(
+                    "Prix du produit :",
+                    produit.prix
+                );
+
+            if (nouveauPrix === null) {
+                return;
+            }
+
+            const prix =
+                parseFloat(nouveauPrix);
+
+            if (isNaN(prix)) {
+
+                alert("Prix invalide");
+
+                return;
+            }
+
+            produits[index].nom = nouveauNom;
+
+            produits[index].prix = prix;
+
+            sauvegarder();
+
+            afficherProduits();
+
+            afficherListeProduits();
+        }
+
+        function supprimerProduit(index) {
+
+            produits.splice(index, 1);
+
+            sauvegarder();
+
+            afficherProduits();
+
+            afficherListeProduits();
+        }
+
+        function monterProduit(index) {
+
+            if (index === 0) return;
+
+            [produits[index], produits[index - 1]] =
+            [produits[index - 1], produits[index]];
+
+            sauvegarder();
+
+            afficherProduits();
+
+            afficherListeProduits();
+        }
+
+        function descendreProduit(index) {
+
+            if (index === produits.length - 1) return;
+
+            [produits[index], produits[index + 1]] =
+            [produits[index + 1], produits[index]];
+
+            sauvegarder();
+
+            afficherProduits();
+
+            afficherListeProduits();
+        }
+
+
+        function afficher() {
+
+            const liste =
+                document.getElementById("listeConsommations");
+
+            const recap =
+                document.getElementById("recapPaiement");
+
+            liste.innerHTML = "";
+
+            recap.innerHTML = "";
+
+
+            let totalGeneral = 0;
+
+            const groupes = {};
+
+            consommations.forEach(function(item) {
+
+                if (!groupes[item.date]) {
+                    groupes[item.date] = [];
+                }
+
+                groupes[item.date].push(item);
+
+            });
+
+            const datesTriees =
+                Object.keys(groupes).sort().reverse();
+
+            datesTriees.forEach(function(date) {
+
+            let totalJour = 0;
+
+            groupes[date].forEach(function(item) {
+                totalJour += item.prix;
+            });
+
+            const titreDate =
+                document.createElement("h3");
+
+            titreDate.textContent =
+                "📅 " + formaterDate(date) +
+                " • " +
+                formaterMontant(totalJour) +
+                " €";
+
+            liste.appendChild(titreDate);
+
+            groupes[date].forEach(function(item) {
+
+                const ligne =
+                    document.createElement("div");
+
+                ligne.className = "consommation";
+
+                ligne.innerHTML =
+                    item.nom +
+                    " • " +
+                    formaterMontant(item.prix) +
+                    " € " +
+                    "<button onclick='supprimerConsommation(" +
+                    item.id +
+                    ")'>❌</button>";
+
+                liste.appendChild(ligne);
+
+                totalGeneral += item.prix;
+            });
+
+            });
+
+            const regroupement = {};
+
+            consommations.forEach(function(item) {
+
+            if (!regroupement[item.nom]) {
+
+                regroupement[item.nom] = {
+                    quantite: 0,
+                    total: 0
+                };
+            }
+
+            regroupement[item.nom].quantite++;
+
+            regroupement[item.nom].total += item.prix;
+
+            });
+
+            for (const produit in regroupement) {
+
+                const ligne =
+                    document.createElement("div");
+
+                ligne.textContent =
+                    produit +
+                    " x" +
+                    regroupement[produit].quantite +
+                    " = " +
+                    formaterMontant(
+                    regroupement[produit].total
+                ) +
+                    " €";
+
+                recap.appendChild(ligne);
+            }
+
+
+            document.getElementById(
+                    "totalAPayer"
+                ).textContent =
+                    "Total : " +
+                    formaterMontant(totalGeneral) +
+                    " €";
+
+
+
+            const zoneHistorique =
+                document.getElementById("historique");
+
+            zoneHistorique.innerHTML = "";
+
+            historiquePaiements.forEach(function(paiement) {
+
+                const montant =
+                    paiement.montant ?? paiement.total ?? 0;
+
+                const bloc =
+                    document.createElement("div");
+
+                bloc.style.marginBottom = "10px";
+
+                bloc.innerHTML =
+
+                    "<button id='toggle-" +
+                    paiement.id +
+                    "' onclick='afficherDetailPaiement(" +
+                    paiement.id +
+                    ")'>▶</button> " +
+
+                    formaterDate(paiement.date) +
+
+                    " : " +
+
+                    formaterMontant(montant) +
+
+                    " €";
+
+                zoneHistorique.appendChild(bloc);
+
+                const details =
+                    document.createElement("div");
+
+                details.id =
+                    "details-" + paiement.id;
+
+                details.className =
+                    "details-paiement";
+
+                details.style.display = "none";
+
+                details.style.marginLeft = "30px";
+
+                if (paiement.details) {
+
+                    paiement.details.forEach(function(item) {
+
+                        const ligne =
+                            document.createElement("div");
+
+                        ligne.textContent =
+
+                            formaterDate(item.date) +
+
+                            " • " +
+
+                            item.nom +
+
+                            " • " +
+
+                            formaterMontant(item.prix) +
+
+                            " €";
+
+                        details.appendChild(ligne);
+
+                    });
+
+                }
+
+                zoneHistorique.appendChild(details);
+
+            });
+               
+
+        }
+
+
+        function supprimerConsommation(id) {
+
+            consommations = consommations.filter(
+                item => item.id !== id
+            );
+
+            sauvegarder();
+
+            afficher();
+        }
+
+        function effectuerPaiement() {
+
+            if (consommations.length === 0) {
+                alert("Aucune consommation à payer.");
+                return;
+            }
+
+            const aujourdHui = new Date();
+
+            const dateTexte =
+                aujourdHui.getFullYear() +
+                "-" +
+                String(aujourdHui.getMonth() + 1).padStart(2, "0") +
+                "-" +
+                String(aujourdHui.getDate()).padStart(2, "0");
+
+            const totalPaiement = consommations.reduce(
+                (acc, item) => acc + item.prix,
+                0
+            );
+
+            historiquePaiements.unshift({
+                id: Date.now(),
+                date: dateTexte,
+                montant: totalPaiement,
+
+                details: [...consommations]
+            });
+
+
+            consommations = [];
+
+            sauvegarder();
+
+            afficher();
+
+        }
+
+        function afficherDetailPaiement(id) {
+
+            const bloc =
+                document.getElementById(
+                    "details-" + id
+                );
+
+            const bouton =
+                document.getElementById(
+                    "toggle-" + id
+                );
+
+            if (bloc.style.display === "none") {
+
+                bloc.style.display = "block";
+
+                bouton.textContent = "▼";
+
+            } else {
+
+                bloc.style.display = "none";
+
+                bouton.textContent = "▶";
+            }
+        }
+
+
+        function afficherOnglet(onglet) {
+
+            const boutons =
+                document.querySelectorAll(
+                    "#navigation button"
+                );
+
+            boutons.forEach(function(bouton) {
+
+                bouton.classList.remove(
+                    "onglet-actif"
+                );
+
+            });
+
+            document.getElementById(
+                "ongletConso"
+            ).style.display = "none";
+
+            document.getElementById(
+                "ongletPayer"
+            ).style.display = "none";
+
+            document.getElementById(
+                "ongletHistorique"
+            ).style.display = "none";
+
+            document.getElementById(
+                "ongletProduits"
+            ).style.display = "none";
+
+            if (onglet === "conso") {
+
+                document
+                    .querySelector(
+                        "#navigation button:nth-child(1)"
+                    )
+                    .classList.add(
+                        "onglet-actif"
+                    );
+
+                document.getElementById(
+                    "ongletConso"
+                ).style.display = "block";
+            }
+
+            if (onglet === "payer") {
+
+                document
+                    .querySelector(
+                        "#navigation button:nth-child(2)"
+                    )
+                    .classList.add(
+                        "onglet-actif"
+                    );
+
+                document.getElementById(
+                    "ongletPayer"
+                ).style.display = "block";
+            }
+
+            if (onglet === "historique") {
+
+                document
+                    .querySelector(
+                        "#navigation button:nth-child(3)"
+                    )
+                    .classList.add(
+                        "onglet-actif"
+                    );
+
+                document.getElementById(
+                    "ongletHistorique"
+                ).style.display = "block";
+            }
+
+            if (onglet === "produits") {
+
+                document
+                    .querySelector(
+                        "#navigation button:nth-child(4)"
+                    )
+                    .classList.add(
+                        "onglet-actif"
+                    );
+
+                document.getElementById(
+                    "ongletProduits"
+                ).style.display = "block";
+            }
+        }
+
+        
+
+charger();
+afficherProduits();
+afficherListeProduits();
+afficher();
+afficherOnglet("conso");
+
+    </script>
+
+</body>
+
+</html>
+
+
+if ("serviceWorker" in navigator) {
+
+    navigator.serviceWorker.register(
+        "./service-worker.js"
+    );
+
+}
