@@ -149,6 +149,17 @@
         #zoneProduits button:hover {
             background-color: #1565c0;
         }
+
+        #zoneProduits .bouton-plus-produits {
+            background-color: #e9f2fb;
+            color: #1976d2;
+            border: 1px solid #c9dff2;
+            font-weight: bold;
+        }
+
+        #zoneProduits .bouton-plus-produits:hover {
+            background-color: #d8eafa;
+        }
         
         .consommation {
             padding: 8px;
@@ -328,6 +339,18 @@
                 justify-content: space-between;
             }
 
+            #zoneProduits {
+                gap: 6px;
+            }
+
+            #zoneProduits button {
+                min-height: 44px;
+                padding: 5px 7px;
+
+                font-size: 13px;
+                line-height: 1.15;
+            }
+
             .recap-montant {
                 min-width: 105px;
                 text-align: right;
@@ -493,6 +516,8 @@
         let produits = [];
 
         let dateSelectionnee = obtenirDateLocale();
+
+        let produitsDeveloppes = false;
 
         const produitsParDefaut = [
 
@@ -736,29 +761,86 @@
 
             zone.innerHTML = "";
 
-            produits.forEach(function(produit) {
+            const affichageMobile =
+                window.matchMedia(
+                    "(max-width: 600px)"
+                ).matches;
 
-                const bouton =
+            const nombreProduitsReduits = 5;
+
+            let produitsVisibles = produits;
+
+            if (
+                affichageMobile &&
+                !produitsDeveloppes
+            ) {
+
+                produitsVisibles =
+                    produits.slice(
+                        0,
+                        nombreProduitsReduits
+                    );
+            }
+
+            produitsVisibles.forEach(
+                function(produit) {
+
+                    const bouton =
+                        document.createElement("button");
+
+                    bouton.textContent =
+                        produit.emoji +
+                        " " +
+                        produit.nom;
+
+                    bouton.onclick = function() {
+
+                        ajouterProduit(
+                            produit.nom,
+                            produit.prix
+                        );
+                    };
+
+                    zone.appendChild(bouton);
+                }
+            );
+
+            if (
+                affichageMobile &&
+                produits.length >
+                    nombreProduitsReduits
+            ) {
+
+                const boutonAffichage =
                     document.createElement("button");
 
-                bouton.textContent =
-                    produit.emoji +
-                    " " +
-                    produit.nom;
+                boutonAffichage.className =
+                    "bouton-plus-produits";
 
-                bouton.onclick = function() {
+                if (produitsDeveloppes) {
 
-                    ajouterProduit(
-                        produit.nom,
-                        produit.prix
-                    );
+                    boutonAffichage.textContent =
+                        "▲ Réduire";
 
-                };
+                } else {
 
-                zone.appendChild(bouton);
+                    boutonAffichage.textContent =
+                        "▼ Voir plus";
+                }
 
-            });
+                boutonAffichage.onclick =
+                    function() {
 
+                        produitsDeveloppes =
+                            !produitsDeveloppes;
+
+                        afficherProduits();
+                    };
+
+                zone.appendChild(
+                    boutonAffichage
+                );
+            }
         }
 
         function ajouterNouveauProduit() {
@@ -1336,6 +1418,34 @@
                 ).style.display = "block";
             }
         }
+
+
+            function gererChangementLargeur() {
+
+                produitsDeveloppes = false;
+
+                afficherProduits();
+            }
+
+            const mediaMobile =
+            window.matchMedia(
+                "(max-width: 600px)"
+            );
+
+            if (mediaMobile.addEventListener) {
+
+                mediaMobile.addEventListener(
+                    "change",
+                    gererChangementLargeur
+                );
+
+            } else {
+
+                mediaMobile.addListener(
+                    gererChangementLargeur
+                );
+            }
+
 
         
 
