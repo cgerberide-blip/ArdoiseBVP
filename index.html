@@ -355,6 +355,56 @@
             border-right: none;
         }
 
+        #zoneSynchronisation {
+            margin-bottom: 18px;
+            padding: 12px;
+
+            background-color: #f4f8fc;
+            border: 1px solid #c9dff2;
+            border-radius: 10px;
+        }
+
+        #zoneSynchronisation h3 {
+            margin-top: 0;
+        }
+
+        #etatSynchronisation {
+            margin-bottom: 10px;
+            color: #555;
+            font-weight: bold;
+        }
+
+        #commandesSynchronisation {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        #commandesSynchronisation button {
+            flex: 1 1 140px;
+            margin: 0;
+        }
+
+        .bouton-connexion,
+        .bouton-cloud {
+            background-color: #1976d2;
+            color: white;
+        }
+
+        .bouton-deconnexion {
+            background-color: #eeeeee;
+            color: #333333;
+        }
+
+        #messageSynchronisation {
+            min-height: 20px;
+            margin-top: 10px;
+
+            color: #1976d2;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
         .ligne-produit {
 
             display: flex;
@@ -519,6 +569,76 @@
     <div class="section" id="ongletProduits">
 
         <h2>Gestion des produits</h2>
+
+        <div id="zoneSynchronisation">
+
+            <h3>Synchronisation</h3>
+
+            <div id="etatSynchronisation">
+                Non connecté
+            </div>
+
+            <div id="formulaireConnexion">
+
+                <input
+                    type="email"
+                    id="emailFirebase"
+                    placeholder="Adresse e-mail"
+                    autocomplete="username"
+                >
+
+                <input
+                    type="password"
+                    id="motDePasseFirebase"
+                    placeholder="Mot de passe"
+                    autocomplete="current-password"
+                >
+
+                <button
+                    type="button"
+                    class="bouton-connexion"
+                    onclick="connexionFirebase()">
+                    Se connecter
+                </button>
+
+            </div>
+
+            <div
+                id="commandesSynchronisation"
+                style="display: none;">
+
+                <button
+                    type="button"
+                    class="bouton-cloud"
+                    onclick="envoyerVersCloud()">
+                    ☁️ Envoyer
+                </button>
+
+                <button
+                    type="button"
+                    class="bouton-cloud"
+                    onclick="chargerDepuisCloud()">
+                    ⬇️ Récupérer
+                </button>
+
+                <button
+                    type="button"
+                    class="bouton-deconnexion"
+                    onclick="deconnexionFirebase()">
+                    Se déconnecter
+                </button>
+
+            </div>
+
+            <div
+                id="messageSynchronisation"
+                role="status"
+                aria-live="polite">
+            </div>
+
+        </div>
+
+        <hr>
 
         <input
             type="text"
@@ -1798,6 +1918,23 @@ afficherOnglet("conso");
 
 
 
+    window.creerDonneesApplication =
+        creerDonneesApplication;
+
+    window.appliquerDonneesApplication =
+        appliquerDonneesApplication;
+
+    window.sauvegarder =
+        sauvegarder;
+
+    window.afficherProduits =
+        afficherProduits;
+
+    window.afficherListeProduits =
+        afficherListeProduits;
+
+    window.afficher =
+        afficher;
 
 /*
 if ("serviceWorker" in navigator) {
@@ -1809,8 +1946,460 @@ if ("serviceWorker" in navigator) {
 }
 */
 
-
     </script>
+
+        <script type="module">
+
+            import {
+                initializeApp
+            } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-app.js";
+
+            import {
+                getAuth,
+                onAuthStateChanged,
+                signInWithEmailAndPassword,
+                signOut
+            } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-auth.js";
+
+            import {
+                getFirestore,
+                doc,
+                getDoc,
+                setDoc
+            } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-firestore.js";
+
+
+            const firebaseConfig = {
+                apiKey: "AIzaSyBi7ggEVPhdK7TiY4nvTEQK_MFWAMQT22g",
+                authDomain: "ardoisebvp.firebaseapp.com",
+                projectId: "ardoisebvp",
+                storageBucket: "ardoisebvp.firebasestorage.app",
+                messagingSenderId: "666455964239",
+                appId: "1:666455964239:web:f3bc18d141fad2d755483a",
+                measurementId: "G-PCJRL097Q3"
+            };
+
+
+            const applicationFirebase =
+                initializeApp(firebaseConfig);
+
+            const authentificationFirebase =
+                getAuth(applicationFirebase);
+
+            const baseFirebase =
+                getFirestore(applicationFirebase);
+
+
+            function afficherMessageCloud(
+                message,
+                erreur = false
+            ) {
+
+                const zone =
+                    document.getElementById(
+                        "messageSynchronisation"
+                    );
+
+                if (!zone) {
+                    return;
+                }
+
+                zone.textContent = message;
+
+                zone.style.color =
+                    erreur
+                        ? "#d32f2f"
+                        : "#1976d2";
+            }
+
+
+            function mettreAJourInterfaceConnexion(
+                utilisateur
+            ) {
+
+                const etat =
+                    document.getElementById(
+                        "etatSynchronisation"
+                    );
+
+                const formulaire =
+                    document.getElementById(
+                        "formulaireConnexion"
+                    );
+
+                const commandes =
+                    document.getElementById(
+                        "commandesSynchronisation"
+                    );
+
+                if (
+                    !etat ||
+                    !formulaire ||
+                    !commandes
+                ) {
+
+                    console.error(
+                        "La zone de synchronisation est absente du HTML."
+                    );
+
+                    return;
+                }
+
+                if (utilisateur) {
+
+                    etat.textContent =
+                        "Connecté : " +
+                        utilisateur.email;
+
+                    formulaire.style.display =
+                        "none";
+
+                    commandes.style.display =
+                        "flex";
+
+                } else {
+
+                    etat.textContent =
+                        "Non connecté";
+
+                    formulaire.style.display =
+                        "block";
+
+                    commandes.style.display =
+                        "none";
+                }
+            }
+
+
+            function obtenirUtilisateurConnecte() {
+
+                const utilisateur =
+                    authentificationFirebase.currentUser;
+
+                if (!utilisateur) {
+
+                    throw new Error(
+                        "Vous devez d’abord vous connecter."
+                    );
+                }
+
+                return utilisateur;
+            }
+
+
+            window.connexionFirebase =
+                async function() {
+
+                    const champEmail =
+                        document.getElementById(
+                            "emailFirebase"
+                        );
+
+                    const champMotDePasse =
+                        document.getElementById(
+                            "motDePasseFirebase"
+                        );
+
+                    if (
+                        !champEmail ||
+                        !champMotDePasse
+                    ) {
+
+                        afficherMessageCloud(
+                            "Le formulaire de connexion est introuvable.",
+                            true
+                        );
+
+                        return;
+                    }
+
+                    const email =
+                        champEmail.value.trim();
+
+                    const motDePasse =
+                        champMotDePasse.value;
+
+                    if (
+                        !email ||
+                        !motDePasse
+                    ) {
+
+                        afficherMessageCloud(
+                            "Saisissez l’adresse e-mail et le mot de passe.",
+                            true
+                        );
+
+                        return;
+                    }
+
+                    afficherMessageCloud(
+                        "Connexion en cours…"
+                    );
+
+                    try {
+
+                        await signInWithEmailAndPassword(
+                            authentificationFirebase,
+                            email,
+                            motDePasse
+                        );
+
+                        champMotDePasse.value = "";
+
+                        afficherMessageCloud(
+                            "Connexion réussie."
+                        );
+
+                    } catch (erreur) {
+
+                        console.error(
+                            "Erreur de connexion Firebase :",
+                            erreur
+                        );
+
+                        afficherMessageCloud(
+                            "Connexion impossible : " +
+                            traduireErreurFirebase(
+                                erreur.code
+                            ),
+                            true
+                        );
+                    }
+                };
+
+
+            window.deconnexionFirebase =
+                async function() {
+
+                    try {
+
+                        await signOut(
+                            authentificationFirebase
+                        );
+
+                        afficherMessageCloud(
+                            "Vous êtes déconnecté."
+                        );
+
+                    } catch (erreur) {
+
+                        console.error(
+                            "Erreur de déconnexion Firebase :",
+                            erreur
+                        );
+
+                        afficherMessageCloud(
+                            "La déconnexion a échoué.",
+                            true
+                        );
+                    }
+                };
+
+
+            window.envoyerVersCloud =
+                async function() {
+
+                    try {
+
+                        const utilisateur =
+                            obtenirUtilisateurConnecte();
+
+                        const confirmation =
+                            confirm(
+                                "Envoyer les données de cet appareil vers le cloud ?\n\n" +
+                                "Les données cloud existantes seront remplacées."
+                            );
+
+                        if (!confirmation) {
+                            return;
+                        }
+
+                        afficherMessageCloud(
+                            "Envoi vers le cloud…"
+                        );
+
+                        /*
+                            La fonction creerDonneesApplication()
+                            se trouve dans votre premier script.
+                        */
+                        const donnees =
+                            window.creerDonneesApplication();
+
+                        const reference =
+                            doc(
+                                baseFirebase,
+                                "utilisateurs",
+                                utilisateur.uid
+                            );
+
+                        await setDoc(
+                            reference,
+                            donnees
+                        );
+
+                        afficherMessageCloud(
+                            "Données envoyées vers le cloud."
+                        );
+
+                    } catch (erreur) {
+
+                        console.error(
+                            "Erreur d’envoi vers Firestore :",
+                            erreur
+                        );
+
+                        afficherMessageCloud(
+                            "L’envoi vers le cloud a échoué : " +
+                            erreur.message,
+                            true
+                        );
+                    }
+                };
+
+
+            window.chargerDepuisCloud =
+                async function() {
+
+                    try {
+
+                        const utilisateur =
+                            obtenirUtilisateurConnecte();
+
+                        afficherMessageCloud(
+                            "Recherche des données cloud…"
+                        );
+
+                        const reference =
+                            doc(
+                                baseFirebase,
+                                "utilisateurs",
+                                utilisateur.uid
+                            );
+
+                        const resultat =
+                            await getDoc(reference);
+
+                        if (!resultat.exists()) {
+
+                            afficherMessageCloud(
+                                "Aucune donnée cloud n’existe encore pour ce compte.",
+                                true
+                            );
+
+                            return;
+                        }
+
+                        const donneesCloud =
+                            resultat.data();
+
+                        const dateCloud =
+                            donneesCloud.updatedAt
+                                ? new Date(
+                                    donneesCloud.updatedAt
+                                ).toLocaleString(
+                                    "fr-FR"
+                                )
+                                : "date inconnue";
+
+                        const confirmation =
+                            confirm(
+                                "Remplacer les données de cet appareil par celles du cloud ?\n\n" +
+                                "Dernière sauvegarde cloud : " +
+                                dateCloud
+                            );
+
+                        if (!confirmation) {
+
+                            afficherMessageCloud(
+                                "Récupération annulée."
+                            );
+
+                            return;
+                        }
+
+                        /*
+                            Ces fonctions se trouvent
+                            dans votre premier script.
+                        */
+                        window.appliquerDonneesApplication(
+                            donneesCloud
+                        );
+
+                        window.sauvegarder();
+
+                        window.afficherProduits();
+
+                        window.afficherListeProduits();
+
+                        window.afficher();
+
+                        afficherMessageCloud(
+                            "Données récupérées depuis le cloud."
+                        );
+
+                    } catch (erreur) {
+
+                        console.error(
+                            "Erreur de récupération Firestore :",
+                            erreur
+                        );
+
+                        afficherMessageCloud(
+                            "La récupération a échoué : " +
+                            erreur.message,
+                            true
+                        );
+                    }
+                };
+
+
+            function traduireErreurFirebase(code) {
+
+                switch (code) {
+
+                    case "auth/invalid-email":
+                        return "l’adresse e-mail est invalide.";
+
+                    case "auth/invalid-credential":
+                        return "l’adresse e-mail ou le mot de passe est incorrect.";
+
+                    case "auth/user-disabled":
+                        return "ce compte a été désactivé.";
+
+                    case "auth/too-many-requests":
+                        return "trop de tentatives ont été effectuées. Réessayez plus tard.";
+
+                    case "auth/network-request-failed":
+                        return "la connexion réseau a échoué.";
+
+                    default:
+                        return "une erreur inattendue s’est produite.";
+                }
+            }
+
+
+            onAuthStateChanged(
+                authentificationFirebase,
+                function(utilisateur) {
+
+                    mettreAJourInterfaceConnexion(
+                        utilisateur
+                    );
+
+                    if (utilisateur) {
+
+                        afficherMessageCloud(
+                            "Connexion Firebase active."
+                        );
+
+                    } else {
+
+                        afficherMessageCloud("");
+                    }
+                }
+            );
+
+        </script>
 
 </body>
 
