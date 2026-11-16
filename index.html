@@ -169,6 +169,31 @@
             padding: 6px;
         }
 
+        .ligne-recap {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 6px;
+            border-bottom: 1px solid #eeeeee;
+        }
+
+        .recap-produit {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .recap-montant {
+            white-space: nowrap;
+        }
+
+        #totalAPayer {
+            color: #1976d2;
+            font-size: 22px;
+            font-weight: bold;
+            text-align: right;
+            padding: 10px 6px;
+        }
+
         input {
             width: 100%;
             box-sizing: border-box;
@@ -295,11 +320,22 @@
         }
 
         @media (max-width: 600px) {
-
-                        body {
+            body {
                 padding: 10px;
             }
 
+            .ligne-recap {
+                justify-content: space-between;
+            }
+
+            .recap-montant {
+                min-width: 105px;
+                text-align: right;
+            }
+
+            #totalAPayer {
+                font-size: 24px;
+            }
         }
 
     </style>
@@ -1008,15 +1044,36 @@
                 const ligne =
                     document.createElement("div");
 
-                ligne.textContent =
-                    produit +
-                    " x" +
+                ligne.className =
+                    "ligne-recap";
+
+                const libelle =
+                    document.createElement("span");
+
+                libelle.className =
+                    "recap-produit";
+
+                libelle.textContent =
                     regroupement[produit].quantite +
-                    " = " +
+                    "x " +
+                    produit;
+
+                const montant =
+                    document.createElement("span");
+
+                montant.className =
+                    "recap-montant";
+
+                montant.textContent =
+                    "= " +
                     formaterMontant(
-                    regroupement[produit].total
-                ) +
+                        regroupement[produit].total
+                    ) +
                     " €";
+
+                ligne.appendChild(libelle);
+
+                ligne.appendChild(montant);
 
                 recap.appendChild(ligne);
             }
