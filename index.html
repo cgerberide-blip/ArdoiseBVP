@@ -405,6 +405,30 @@
             font-weight: bold;
         }
 
+        .commandes-sauvegarde {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+
+            margin-top: 12px;
+            padding-top: 12px;
+
+            border-top: 1px solid #c9dff2;
+        }
+
+        .commandes-sauvegarde button {
+            flex: 1 1 180px;
+            margin: 0;
+        }
+
+        .bouton-sauvegarde {
+            background-color: #ffffff;
+            color: #1976d2;
+
+            border: 1px solid #1976d2;
+            font-weight: bold;
+        }
+
         .ligne-produit {
 
             display: flex;
@@ -485,6 +509,15 @@
 
             #totalAPayer {
                 font-size: 24px;
+            }
+
+            .commandes-sauvegarde {
+                flex-direction: column;
+            }
+
+            .commandes-sauvegarde button {
+                width: 100%;
+                flex-basis: auto;
             }
         }
 
@@ -627,6 +660,32 @@
                     onclick="deconnexionFirebase()">
                     Se déconnecter
                 </button>
+
+            </div>
+
+            <div class="commandes-sauvegarde">
+
+                <button
+                    type="button"
+                    class="bouton-sauvegarde"
+                    onclick="exporterSauvegardeJSON()">
+                    💾 Exporter une sauvegarde
+                </button>
+
+                <button
+                    type="button"
+                    class="bouton-sauvegarde"
+                    onclick="ouvrirImportationJSON()">
+                    📂 Importer une sauvegarde
+                </button>
+
+                <input
+                    type="file"
+                    id="fichierImportationJSON"
+                    accept=".json,application/json"
+                    hidden
+                    onchange="importerSauvegardeJSON(this.files[0])"
+                >
 
             </div>
 
@@ -959,6 +1018,281 @@
                     : [];
         }
 
+        function verifierDonneesApplication(donnees) {
+
+            if (
+                !donnees ||
+                typeof donnees !== "object" ||
+                Array.isArray(donnees)
+            ) {
+
+                throw new Error(
+                    "Le fichier ne contient pas un objet de données valide."
+                );
+            }
+
+            if (
+                !Array.isArray(donnees.produits)
+            ) {
+
+                throw new Error(
+                    "La liste des produits est absente ou invalide."
+                );
+            }
+
+            if (
+                !Array.isArray(donnees.consommations)
+            ) {
+
+                throw new Error(
+                    "La liste des consommations est absente ou invalide."
+                );
+            }
+
+            if (
+                !Array.isArray(
+                    donnees.historiquePaiements
+                )
+            ) {
+
+                throw new Error(
+                    "L’historique des paiements est absent ou invalide."
+                );
+            }
+
+            return true;
+        }
+
+        function exporterSauvegardeJSON() {
+
+            try {
+
+                const donnees =
+                    creerDonneesApplication();
+
+                const contenuJSON =
+                    JSON.stringify(
+                        donnees,
+                        null,
+                        2
+                    );
+
+                const fichier =
+                    new Blob(
+                        [contenuJSON],
+                        {
+                            type:
+                                "application/json;charset=utf-8"
+                        }
+                    );
+
+                const date =
+                    obtenirDateLocale();
+
+                const nomFichier =
+                    "ardoise-bvp-sauvegarde-" +
+                    date +
+                    ".json";
+
+                const adresseTemporaire =
+                    URL.createObjectURL(
+                        fichier
+                    );
+
+                const lien =
+                    document.createElement("a");
+
+                lien.href =
+                    adresseTemporaire;
+
+                lien.download =
+                    nomFichier;
+
+                document.body.appendChild(
+                    lien
+                );
+
+                lien.click();
+
+                lien.remove();
+
+                URL.revokeObjectURL(
+                    adresseTemporaire
+                );
+
+                afficherMessageSauvegarde(
+                    "Sauvegarde exportée : " +
+                    nomFichier,
+                    false
+                );
+
+            } catch (erreur) {
+
+                console.error(
+                    "Erreur pendant l’export :",
+                    erreur
+                );
+
+                afficherMessageSauvegarde(
+                    "L’export de la sauvegarde a échoué.",
+                    true
+                );
+            }
+        }
+
+        function ouvrirImportationJSON() {
+
+            const champFichier =
+                document.getElementById(
+                    "fichierImportationJSON"
+                );
+
+            if (!champFichier) {
+
+                alert(
+                    "Le sélecteur de fichier est introuvable."
+                );
+
+                return;
+            }
+
+            /*
+                Réinitialisation nécessaire pour pouvoir
+                sélectionner deux fois de suite le même fichier.
+            */
+            champFichier.value = "";
+
+            champFichier.click();
+        }
+
+        async function importerSauvegardeJSON(
+            fichier
+        ) {
+
+            if (!fichier) {
+                return;
+            }
+
+            try {
+
+                const contenu =
+                    await fichier.text();
+
+                const donneesImportees =
+                    JSON.parse(contenu);
+
+                verifierDonneesApplication(
+                    donneesImportees
+                );
+
+                const dateSauvegarde =
+                    donneesImportees.updatedAt
+                        ? new Date(
+                            donneesImportees.updatedAt
+                        ).toLocaleString(
+                            "fr-FR"
+                        )
+                        : "date inconnue";
+
+                const nombreConsommations =
+                    donneesImportees
+                        .consommations
+                        .length;
+
+                const nombrePaiements =
+                    donneesImportees
+                        .historiquePaiements
+                        .length;
+
+                const confirmation =
+                    confirm(
+                        "Importer cette sauvegarde ?\n\n" +
+                        "Fichier : " +
+                        fichier.name +
+                        "\n" +
+                        "Date de sauvegarde : " +
+                        dateSauvegarde +
+                        "\n" +
+                        "Consommations en attente : " +
+                        nombreConsommations +
+                        "\n" +
+                        "Paiements enregistrés : " +
+                        nombrePaiements +
+                        "\n\n" +
+                        "Les données actuellement présentes sur cet appareil seront remplacées."
+                    );
+
+                if (!confirmation) {
+
+                    afficherMessageSauvegarde(
+                        "Importation annulée.",
+                        false
+                    );
+
+                    return;
+                }
+
+                appliquerDonneesApplication(
+                    donneesImportees
+                );
+
+                /*
+                    sauvegarder() crée un nouvel updatedAt
+                    correspondant au moment de l’importation.
+                */
+                sauvegarder();
+
+                produitsDeveloppes = false;
+
+                afficherProduits();
+
+                afficherListeProduits();
+
+                afficher();
+
+                afficherMessageSauvegarde(
+                    "La sauvegarde a été importée.",
+                    false
+                );
+
+            } catch (erreur) {
+
+                console.error(
+                    "Erreur pendant l’import :",
+                    erreur
+                );
+
+                afficherMessageSauvegarde(
+                    "Importation impossible : " +
+                    erreur.message,
+                    true
+                );
+            }
+        }
+
+        function afficherMessageSauvegarde(
+            message,
+            erreur
+        ) {
+
+            const zone =
+                document.getElementById(
+                    "messageSynchronisation"
+                );
+
+            if (!zone) {
+                return;
+            }
+
+            zone.textContent =
+                message;
+
+            zone.style.color =
+                erreur
+                    ? "#d32f2f"
+                    : "#1976d2";
+        }
+
         function sauvegarder() {
 
             const donnees =
@@ -985,6 +1319,8 @@
                         JSON.parse(
                             donneesUnifiees
                         );
+
+                    verifierDonneesApplication(donnees);
 
                     appliquerDonneesApplication(
                         donnees
@@ -1936,6 +2272,15 @@ afficherOnglet("conso");
     window.afficher =
         afficher;
 
+    window.exporterSauvegardeJSON =
+        exporterSauvegardeJSON;
+
+    window.ouvrirImportationJSON =
+        ouvrirImportationJSON;
+
+    window.importerSauvegardeJSON =
+        importerSauvegardeJSON;
+
 /*
 if ("serviceWorker" in navigator) {
 
@@ -2204,26 +2549,9 @@ if ("serviceWorker" in navigator) {
                         const utilisateur =
                             obtenirUtilisateurConnecte();
 
-                        const confirmation =
-                            confirm(
-                                "Envoyer les données de cet appareil vers le cloud ?\n\n" +
-                                "Les données cloud existantes seront remplacées."
-                            );
-
-                        if (!confirmation) {
-                            return;
-                        }
-
                         afficherMessageCloud(
-                            "Envoi vers le cloud…"
+                            "Vérification de la version cloud…"
                         );
-
-                        /*
-                            La fonction creerDonneesApplication()
-                            se trouve dans votre premier script.
-                        */
-                        const donnees =
-                            window.creerDonneesApplication();
 
                         const reference =
                             doc(
@@ -2232,9 +2560,109 @@ if ("serviceWorker" in navigator) {
                                 utilisateur.uid
                             );
 
+                        const resultatCloud =
+                            await getDoc(reference);
+
+                        const donneesLocales =
+                            window.creerDonneesApplication();
+
+                        if (resultatCloud.exists()) {
+
+                            const donneesCloud =
+                                resultatCloud.data();
+
+                            const dateCloud =
+                                donneesCloud.updatedAt
+                                    ? new Date(
+                                        donneesCloud.updatedAt
+                                    )
+                                    : null;
+
+                            const anciennesDonneesLocales =
+                                localStorage.getItem(
+                                    "ardoiseBVP"
+                                );
+
+                            let dateLocale =
+                                null;
+
+                            if (anciennesDonneesLocales) {
+
+                                const donneesEnregistrees =
+                                    JSON.parse(
+                                        anciennesDonneesLocales
+                                    );
+
+                                if (
+                                    donneesEnregistrees.updatedAt
+                                ) {
+
+                                    dateLocale =
+                                        new Date(
+                                            donneesEnregistrees.updatedAt
+                                        );
+                                }
+                            }
+
+                            if (
+                                dateCloud &&
+                                dateLocale &&
+                                dateCloud > dateLocale
+                            ) {
+
+                                const continuer =
+                                    confirm(
+                                        "La sauvegarde cloud semble plus récente que les données de cet appareil.\n\n" +
+                                        "Il est recommandé de sélectionner Récupérer avant d’envoyer.\n\n" +
+                                        "Voulez-vous quand même remplacer la version cloud ?"
+                                    );
+
+                                if (!continuer) {
+
+                                    afficherMessageCloud(
+                                        "Envoi annulé. Récupérez d’abord les données cloud.",
+                                        true
+                                    );
+
+                                    return;
+                                }
+                            }
+                        }
+
+                        const confirmation =
+                            confirm(
+                                "Envoyer les données de cet appareil vers le cloud ?\n\n" +
+                                "Les données cloud existantes seront remplacées."
+                            );
+
+                        if (!confirmation) {
+
+                            afficherMessageCloud(
+                                "Envoi annulé."
+                            );
+
+                            return;
+                        }
+
+                        afficherMessageCloud(
+                            "Envoi vers le cloud…"
+                        );
+
                         await setDoc(
                             reference,
-                            donnees
+                            donneesLocales
+                        );
+
+                        /*
+                            On réenregistre exactement les données
+                            envoyées afin que updatedAt soit identique
+                            dans le local et dans Firestore.
+                        */
+                        localStorage.setItem(
+                            "ardoiseBVP",
+                            JSON.stringify(
+                                donneesLocales
+                            )
                         );
 
                         afficherMessageCloud(
