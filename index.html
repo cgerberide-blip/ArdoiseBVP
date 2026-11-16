@@ -50,6 +50,69 @@
             font-size: 16px;
         }
 
+        .selecteur-date {
+            display: grid;
+            grid-template-columns: 48px minmax(0, 1fr) 48px;
+            gap: 8px;
+            align-items: stretch;
+            margin-bottom: 20px;
+        }
+
+        .bouton-date {
+            width: 48px;
+            min-height: 70px;
+            margin: 0;
+            padding: 8px;
+
+            background-color: #e9f2fb;
+            color: #1976d2;
+
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .date-centre {
+            min-width: 0;
+            padding: 8px 10px;
+
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+
+            background-color: #f4f8fc;
+            border: 1px solid #c9dff2;
+            border-radius: 8px;
+        }
+
+        #dateSelectionneeTexte {
+            width: 100%;
+
+            color: #1976d2;
+            font-size: 16px;
+            font-weight: bold;
+            line-height: 1.3;
+            text-align: center;
+        }
+
+        #dateSelectionneeInput {
+            width: 100%;
+            max-width: 220px;
+
+            margin-top: 7px;
+            margin-bottom: 0;
+            padding: 6px 8px;
+
+            font-size: 14px;
+            text-align: center;
+            background-color: white;
+        }
+
+        .titre-ajout {
+            margin-top: 0;
+        }
+
+
         #zoneProduits {
             display: grid;
 
@@ -270,7 +333,41 @@
 
     <div class="section" id="ongletConso">
 
-        <h2>Ajouter une consommation</h2>
+        <h2>Date de la consommation</h2>
+
+        <div class="selecteur-date">
+
+            <button
+                type="button"
+                class="bouton-date"
+                onclick="changerDate(-1)"
+                aria-label="Jour précédent">
+                ◀
+            </button>
+
+            <div class="date-centre">
+
+                <div id="dateSelectionneeTexte"></div>
+
+                <input
+                    type="date"
+                    id="dateSelectionneeInput"
+                    onchange="selectionnerDate(this.value)"
+                    aria-label="Choisir une date">
+
+            </div>
+
+            <button
+                type="button"
+                class="bouton-date"
+                onclick="changerDate(1)"
+                aria-label="Jour suivant">
+                ▶
+            </button>
+
+        </div>
+
+        <h2 class="titre-ajout">Ajouter une consommation</h2>
 
         <div id="zoneProduits"></div>
 
@@ -359,6 +456,8 @@
 
         let produits = [];
 
+        let dateSelectionnee = obtenirDateLocale();
+
         const produitsParDefaut = [
 
             {
@@ -405,6 +504,120 @@
 
         ];
 
+        function obtenirDateLocale(date = new Date()) {
+
+            const annee =
+                date.getFullYear();
+
+            const mois =
+                String(
+                    date.getMonth() + 1
+                ).padStart(2, "0");
+
+            const jour =
+                String(
+                    date.getDate()
+                ).padStart(2, "0");
+
+            return (
+                annee +
+                "-" +
+                mois +
+                "-" +
+                jour
+            );
+        }
+
+        function creerDateLocale(dateTexte) {
+
+            const [annee, mois, jour] =
+                dateTexte
+                    .split("-")
+                    .map(Number);
+
+            return new Date(
+                annee,
+                mois - 1,
+                jour,
+                12,
+                0,
+                0
+            );
+        }
+
+        function formaterDateLongue(dateTexte) {
+
+            const date =
+                creerDateLocale(dateTexte);
+
+            const texte =
+                new Intl.DateTimeFormat(
+                    "fr-FR",
+                    {
+                        weekday: "long",
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric"
+                    }
+                ).format(date);
+
+            return (
+                texte.charAt(0).toUpperCase() +
+                texte.slice(1)
+            );
+        }
+
+        function mettreAJourSelecteurDate() {
+
+            const texte =
+                document.getElementById(
+                    "dateSelectionneeTexte"
+                );
+
+            const champ =
+                document.getElementById(
+                    "dateSelectionneeInput"
+                );
+
+            texte.textContent =
+                formaterDateLongue(
+                    dateSelectionnee
+                );
+
+            champ.value =
+                dateSelectionnee;
+        }
+
+        function changerDate(nombreDeJours) {
+
+            const date =
+                creerDateLocale(
+                    dateSelectionnee
+                );
+
+            date.setDate(
+                date.getDate() +
+                nombreDeJours
+            );
+
+            dateSelectionnee =
+                obtenirDateLocale(date);
+
+            mettreAJourSelecteurDate();
+        }
+
+        function selectionnerDate(nouvelleDate) {
+
+            if (!nouvelleDate) {
+                return;
+            }
+
+            dateSelectionnee =
+                nouvelleDate;
+
+            mettreAJourSelecteurDate();
+        }
+
         function formaterDate(dateTexte) {
 
             const [annee, mois, jour] =
@@ -421,25 +634,16 @@
 
         function ajouterProduit(nom, prix) {
 
-    const aujourdHui = new Date();
+            consommations.push({
+                id: Date.now(),
+                nom: nom,
+                prix: prix,
+                date: dateSelectionnee
+            });
 
-    const dateTexte =
-        aujourdHui.getFullYear() +
-        "-" +
-        String(aujourdHui.getMonth() + 1).padStart(2, "0") +
-        "-" +
-        String(aujourdHui.getDate()).padStart(2, "0");
+            sauvegarder();
 
-    consommations.push({
-        id: Date.now(),
-        nom: nom,
-        prix: prix,
-        date: dateTexte
-    });
-
-    sauvegarder();
-
-    afficher();
+            afficher();
         }
 
         function sauvegarder() {
@@ -750,7 +954,8 @@
                 document.createElement("h3");
 
             titreDate.textContent =
-                "📅 " + formaterDate(date) +
+                "📅 " +
+                formaterDateLongue(date) +
                 " • " +
                 formaterMontant(totalJour) +
                 " €";
@@ -849,7 +1054,7 @@
                     paiement.id +
                     ")'>▶</button> " +
 
-                    formaterDate(paiement.date) +
+                    formaterDateLongue(paiement.date) +
 
                     " : " +
 
@@ -881,7 +1086,7 @@
 
                         ligne.textContent =
 
-                            formaterDate(item.date) +
+                            formaterDateLongue(item.date) +
 
                             " • " +
 
@@ -1078,6 +1283,7 @@
         
 
 charger();
+mettreAJourSelecteurDate();
 afficherProduits();
 afficherListeProduits();
 afficher();
