@@ -798,51 +798,126 @@
             afficher();
         }
 
+        function creerDonneesApplication() {
+
+            return {
+                version: 1,
+                updatedAt: new Date().toISOString(),
+
+                produits: produits,
+                consommations: consommations,
+                historiquePaiements: historiquePaiements
+            };
+        }
+
+        function appliquerDonneesApplication(donnees) {
+
+            if (
+                !donnees ||
+                typeof donnees !== "object"
+            ) {
+                throw new Error(
+                    "Le fichier de données est invalide."
+                );
+            }
+
+            produits =
+                Array.isArray(donnees.produits)
+                    ? donnees.produits
+                    : [];
+
+            consommations =
+                Array.isArray(donnees.consommations)
+                    ? donnees.consommations
+                    : [];
+
+            historiquePaiements =
+                Array.isArray(
+                    donnees.historiquePaiements
+                )
+                    ? donnees.historiquePaiements
+                    : [];
+        }
+
         function sauvegarder() {
 
-            localStorage.setItem(
-                "consommations",
-                JSON.stringify(consommations)
-            );
+            const donnees =
+                creerDonneesApplication();
 
             localStorage.setItem(
-                "historiquePaiements",
-                JSON.stringify(historiquePaiements)
+                "ardoiseBVP",
+                JSON.stringify(donnees)
             );
-
-            localStorage.setItem(
-                "produits",
-                JSON.stringify(produits)
-            );
-
         }
 
         function charger() {
 
-            const donnees =
-                localStorage.getItem("consommations");
+            const donneesUnifiees =
+                localStorage.getItem(
+                    "ardoiseBVP"
+                );
 
-            if (donnees) {
-                consommations = JSON.parse(donnees);
+            if (donneesUnifiees) {
+
+                try {
+
+                    const donnees =
+                        JSON.parse(
+                            donneesUnifiees
+                        );
+
+                    appliquerDonneesApplication(
+                        donnees
+                    );
+
+                    return;
+
+                } catch (erreur) {
+
+                    console.error(
+                        "Impossible de charger les données unifiées.",
+                        erreur
+                    );
+                }
             }
 
-            const historique =
-                localStorage.getItem("historiquePaiements");
+            const anciennesConsommations =
+                localStorage.getItem(
+                    "consommations"
+                );
 
-            if (historique) {
-                historiquePaiements = JSON.parse(historique);
-            }
+            const ancienHistorique =
+                localStorage.getItem(
+                    "historiquePaiements"
+                );
 
-            const produitsStockes =
-                localStorage.getItem("produits");
+            const anciensProduits =
+                localStorage.getItem(
+                    "produits"
+                );
 
-            if (produitsStockes) {
-                produits = JSON.parse(produitsStockes);
-            } 
-            else {
-                produits = produitsParDefaut;
-            }
+            consommations =
+                anciennesConsommations
+                    ? JSON.parse(
+                        anciennesConsommations
+                    )
+                    : [];
 
+            historiquePaiements =
+                ancienHistorique
+                    ? JSON.parse(
+                        ancienHistorique
+                    )
+                    : [];
+
+            produits =
+                anciensProduits
+                    ? JSON.parse(
+                        anciensProduits
+                    )
+                    : [...produitsParDefaut];
+
+            sauvegarder();
         }
 
         function afficherProduits() {
