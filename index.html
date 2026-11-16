@@ -374,6 +374,34 @@
             font-weight: bold;
         }
 
+        #etatSynchronisationAutomatique {
+            margin-bottom: 10px;
+            padding: 7px 9px;
+
+            background-color: #eeeeee;
+            color: #555555;
+
+            border-radius: 7px;
+
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        #etatSynchronisationAutomatique.sync-active {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        #etatSynchronisationAutomatique.sync-attente {
+            background-color: #fff8e1;
+            color: #8a6500;
+        }
+
+        #etatSynchronisationAutomatique.sync-erreur {
+            background-color: #fdecec;
+            color: #d32f2f;
+        }
+
         #commandesSynchronisation {
             display: flex;
             flex-wrap: wrap;
@@ -609,6 +637,10 @@
 
             <div id="etatSynchronisation">
                 Non connecté
+            </div>
+
+            <div id="etatSynchronisationAutomatique">
+                Synchronisation automatique inactive
             </div>
 
             <div id="formulaireConnexion">
@@ -1302,6 +1334,18 @@
                 "ardoiseBVP",
                 JSON.stringify(donnees)
             );
+
+            /*
+                Cette fonction sera disponible lorsque
+                Firebase aura terminé son initialisation.
+            */
+            if (
+                typeof window.planifierSynchronisationCloud
+                === "function"
+            ) {
+
+                window.planifierSynchronisationCloud();
+            }
         }
 
         function charger() {
@@ -2310,7 +2354,8 @@ if ("serviceWorker" in navigator) {
                 getFirestore,
                 doc,
                 getDoc,
-                setDoc
+                setDoc,
+                onSnapshot
             } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-firestore.js";
 
 
@@ -2333,6 +2378,18 @@ if ("serviceWorker" in navigator) {
 
             const baseFirebase =
                 getFirestore(applicationFirebase);
+            
+            let arreterEcouteCloud = null;
+
+            let temporisateurSynchronisation = null;
+
+            let applicationDonneesCloud = false;
+
+            let synchronisationEnCours = false;
+
+            let referenceUtilisateur = null;
+
+            let premiereReceptionCloud = true;
 
 
             function afficherMessageCloud(
@@ -2356,6 +2413,389 @@ if ("serviceWorker" in navigator) {
                         ? "#d32f2f"
                         : "#1976d2";
             }
+
+            function afficherEtatSynchronisation(
+                texte,
+                classe = ""
+            ) {
+
+                const zone =
+                    document.getElementById(
+                        "etatSynchronisationAutomatique"
+                    );
+
+                if (!zone) {
+                    return;
+                }
+
+                zone.textContent = texte;
+
+                zone.className = classe;
+            }
+
+            function obtenirDateMiseAJour(donnees) {
+
+                if (
+                    !donnees ||
+                    !donnees.updatedAt
+                ) {
+                    return 0;
+                }
+
+                const resultat =
+                    new Date(
+                        donnees.updatedAt
+                    ).getTime();
+
+                return Number.isNaN(resultat)
+                    ? 0
+                    : resultat;
+            }
+
+            function obtenirDonneesLocalesStockees() {
+
+                const texte =
+                    localStorage.getItem(
+                        "ardoiseBVP"
+                    );
+
+                if (!texte) {
+                    return null;
+                }
+
+                try {
+
+                    return JSON.parse(texte);
+
+                } catch (erreur) {
+
+                    console.error(
+                        "Données locales illisibles :",
+                        erreur
+                    );
+
+                    return null;
+                }
+            }
+
+            function appliquerSilencieusementDonneesCloud(
+                donneesCloud
+            ) {
+
+                applicationDonneesCloud = true;
+
+                try {
+
+                    window.appliquerDonneesApplication(
+                        donneesCloud
+                    );
+
+                    localStorage.setItem(
+                        "ardoiseBVP",
+                        JSON.stringify(
+                            donneesCloud
+                        )
+                    );
+
+                    window.afficherProduits();
+
+                    window.afficherListeProduits();
+
+                    window.afficher();
+
+                } finally {
+
+                    applicationDonneesCloud = false;
+                }
+            }
+
+            let nouvelleSynchronisationDemandee = false;
+
+            async function synchroniserAutomatiquement() {
+
+                if (
+                    applicationDonneesCloud ||
+                    !referenceUtilisateur ||
+                    !authentificationFirebase.currentUser
+                ) {
+                    return;
+                }
+
+                if (synchronisationEnCours) {
+
+                    nouvelleSynchronisationDemandee = true;
+
+                    return;
+                }
+
+                synchronisationEnCours = true;
+
+                nouvelleSynchronisationDemandee = false;
+
+                afficherEtatSynchronisation(
+                    "Synchronisation en cours…",
+                    "sync-attente"
+                );
+
+                try {
+
+                    const donnees =
+                        window.creerDonneesApplication();
+
+                    await setDoc(
+                        referenceUtilisateur,
+                        donnees
+                    );
+
+                    localStorage.setItem(
+                        "ardoiseBVP",
+                        JSON.stringify(
+                            donnees
+                        )
+                    );
+
+                    afficherEtatSynchronisation(
+                        "Synchronisé",
+                        "sync-active"
+                    );
+
+                } catch (erreur) {
+
+                    console.error(
+                        "Synchronisation automatique impossible :",
+                        erreur
+                    );
+
+                    afficherEtatSynchronisation(
+                        "Erreur de synchronisation",
+                        "sync-erreur"
+                    );
+
+                    afficherMessageCloud(
+                        "La modification reste enregistrée sur cet appareil.",
+                        true
+                    );
+
+                } finally {
+
+                    synchronisationEnCours = false;
+
+                    if (nouvelleSynchronisationDemandee) {
+
+                        nouvelleSynchronisationDemandee = false;
+
+                        synchroniserAutomatiquement();
+                    }
+                }
+            }
+
+            window.planifierSynchronisationCloud =
+                function() {
+
+                    if (
+                        applicationDonneesCloud ||
+                        !authentificationFirebase.currentUser ||
+                        !referenceUtilisateur
+                    ) {
+                        return;
+                    }
+
+                    if (temporisateurSynchronisation) {
+
+                        clearTimeout(
+                            temporisateurSynchronisation
+                        );
+                    }
+
+                    afficherEtatSynchronisation(
+                        "Modification en attente…",
+                        "sync-attente"
+                    );
+
+                    temporisateurSynchronisation =
+                        setTimeout(
+                            function() {
+
+                                temporisateurSynchronisation =
+                                    null;
+
+                                synchroniserAutomatiquement();
+
+                            },
+                            800
+                        );
+                };
+
+            function demarrerEcouteCloud(
+                utilisateur
+            ) {
+
+                if (arreterEcouteCloud) {
+
+                    arreterEcouteCloud();
+
+                    arreterEcouteCloud = null;
+                }
+
+                referenceUtilisateur =
+                    doc(
+                        baseFirebase,
+                        "utilisateurs",
+                        utilisateur.uid
+                    );
+
+                premiereReceptionCloud = true;
+
+                afficherEtatSynchronisation(
+                    "Connexion au cloud…",
+                    "sync-attente"
+                );
+
+                arreterEcouteCloud =
+                    onSnapshot(
+
+                        referenceUtilisateur,
+
+                        function(resultat) {
+
+                            if (!resultat.exists()) {
+
+                                premiereReceptionCloud =
+                                    false;
+
+                                afficherEtatSynchronisation(
+                                    "Aucune sauvegarde cloud",
+                                    "sync-attente"
+                                );
+
+                                /*
+                                    Si le cloud est vide, on envoie
+                                    automatiquement les données locales.
+                                */
+                                synchroniserAutomatiquement();
+
+                                return;
+                            }
+
+                            const donneesCloud =
+                                resultat.data();
+
+                            const donneesLocales =
+                                obtenirDonneesLocalesStockees();
+
+                            const dateCloud =
+                                obtenirDateMiseAJour(
+                                    donneesCloud
+                                );
+
+                            const dateLocale =
+                                obtenirDateMiseAJour(
+                                    donneesLocales
+                                );
+
+                            if (premiereReceptionCloud) {
+
+                                premiereReceptionCloud =
+                                    false;
+
+                                if (
+                                    !donneesLocales ||
+                                    dateCloud >= dateLocale
+                                ) {
+
+                                    appliquerSilencieusementDonneesCloud(
+                                        donneesCloud
+                                    );
+
+                                    afficherEtatSynchronisation(
+                                        "Synchronisé",
+                                        "sync-active"
+                                    );
+
+                                } else {
+
+                                    afficherEtatSynchronisation(
+                                        "Envoi des données locales…",
+                                        "sync-attente"
+                                    );
+
+                                    synchroniserAutomatiquement();
+                                }
+
+                                return;
+                            }
+
+                            if (dateCloud > dateLocale) {
+
+                                appliquerSilencieusementDonneesCloud(
+                                    donneesCloud
+                                );
+
+                                afficherEtatSynchronisation(
+                                    "Données mises à jour",
+                                    "sync-active"
+                                );
+
+                            } else {
+
+                                afficherEtatSynchronisation(
+                                    "Synchronisé",
+                                    "sync-active"
+                                );
+                            }
+                        },
+
+                        function(erreur) {
+
+                            console.error(
+                                "Erreur d’écoute Firestore :",
+                                erreur
+                            );
+
+                            afficherEtatSynchronisation(
+                                "Écoute cloud interrompue",
+                                "sync-erreur"
+                            );
+
+                            afficherMessageCloud(
+                                "La liaison avec le cloud a été interrompue.",
+                                true
+                            );
+                        }
+                    );
+            }
+
+            function arreterSynchronisationAutomatique() {
+
+                if (arreterEcouteCloud) {
+
+                    arreterEcouteCloud();
+
+                    arreterEcouteCloud = null;
+                }
+
+                if (temporisateurSynchronisation) {
+
+                    clearTimeout(
+                        temporisateurSynchronisation
+                    );
+
+                    temporisateurSynchronisation =
+                        null;
+                }
+
+                referenceUtilisateur = null;
+
+                premiereReceptionCloud = true;
+
+                nouvelleSynchronisationDemandee = false;
+
+                afficherEtatSynchronisation(
+                    "Synchronisation automatique inactive",
+                    ""
+                );
+            }
+
 
 
             function mettreAJourInterfaceConnexion(
@@ -2515,6 +2955,8 @@ if ("serviceWorker" in navigator) {
 
             window.deconnexionFirebase =
                 async function() {
+
+                    arreterSynchronisationAutomatique();
 
                     try {
 
@@ -2820,7 +3262,13 @@ if ("serviceWorker" in navigator) {
                             "Connexion Firebase active."
                         );
 
+                        demarrerEcouteCloud(
+                            utilisateur
+                        );
+
                     } else {
+
+                        arreterSynchronisationAutomatique();
 
                         afficherMessageCloud("");
                     }
