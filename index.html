@@ -110,10 +110,59 @@
             background-color: white;
         }
 
+        .titre-date,
         .titre-ajout {
             margin-top: 0;
+            margin-bottom: 4px;
         }
 
+        .entete-consommations {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .entete-consommations h2 {
+            margin: 0;
+        }
+
+        #totalConsommations {
+            color: lab(55.17% 67.07 41.77);
+            font-size: 20px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        #etatSynchronisationGlobal {
+            margin: -8px auto 12px;
+            padding: 0px 2px;
+            max-width: 520px;
+            min-height: 18px;
+            box-sizing: border-box;
+            border-radius: 6px;
+            background-color: #eeeeee;
+            color: #555555;
+            font-size: 12px;
+            font-weight: bold;
+            line-height: 1.3;
+            text-align: center;
+        }
+
+        #etatSynchronisationGlobal.sync-active {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        #etatSynchronisationGlobal.sync-attente {
+            background-color: #fff8e1;
+            color: #8a6500;
+        }
+
+        #etatSynchronisationGlobal.sync-erreur {
+            background-color: #fdecec;
+            color: #d32f2f;
+        }
 
         #zoneProduits {
             display: grid;
@@ -559,6 +608,13 @@
 
     <h1>🃏Ardoise BVP</h1>
 
+    <div
+        id="etatSynchronisationGlobal"
+        role="status"
+        aria-live="polite">
+        Synchronisation automatique inactive
+    </div>
+
     <div id="navigation">
 
         <button onclick="afficherOnglet('conso')">
@@ -582,7 +638,7 @@
 
     <div class="section" id="ongletConso">
 
-        <h2>Date de la consommation</h2>
+        <h2 class="titre-date">Date de la consommation</h2>
 
         <div class="selecteur-date">
 
@@ -622,7 +678,15 @@
 
         <hr>
 
-        <h2>Consommations</h2>
+        <div class="entete-consommations">
+
+            <h2>Consommations</h2>
+
+            <div id="totalConsommations">
+                0,00 €
+            </div>
+
+        </div>
 
         <div id="listeConsommations"></div>
 
@@ -1836,6 +1900,12 @@
                     formaterMontant(totalGeneral) +
                     " €";
 
+            document.getElementById(
+                    "totalConsommations"
+                ).textContent =
+                    formaterMontant(totalGeneral) +
+                    " €";
+
 
 
             const zoneHistorique =
@@ -2452,18 +2522,26 @@ afficherOnglet("conso");
                 classe = ""
             ) {
 
-                const zone =
+                const zones = [
                     document.getElementById(
                         "etatSynchronisationAutomatique"
-                    );
+                    ),
+                    document.getElementById(
+                        "etatSynchronisationGlobal"
+                    )
+                ];
 
-                if (!zone) {
-                    return;
-                }
+                zones.forEach(
+                    function(zone) {
 
-                zone.textContent = texte;
+                        if (!zone) {
+                            return;
+                        }
 
-                zone.className = classe;
+                        zone.textContent = texte;
+                        zone.className = classe;
+                    }
+                );
             }
 
             function obtenirDateMiseAJour(donnees) {

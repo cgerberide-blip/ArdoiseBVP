@@ -1,5 +1,5 @@
 const CACHE_NAME =
-    "ardoise-bvp-v5";
+    "ardoise-bvp-v6";
 
 const FICHIERS_STATIQUES = [
     "./manifest.json",
