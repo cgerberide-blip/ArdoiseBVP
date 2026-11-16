@@ -1,4 +1,4 @@
-const CACHE_NAME = "ardoise-bvp-v1.0.1";
+const CACHE_NAME = "ardoise-bvp-v2";
 
 const urlsToCache = [
     "./",
