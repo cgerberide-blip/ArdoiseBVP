@@ -2325,15 +2325,46 @@ afficherOnglet("conso");
     window.importerSauvegardeJSON =
         importerSauvegardeJSON;
 
-/*
-if ("serviceWorker" in navigator) {
 
-    navigator.serviceWorker.register(
-        "./service-worker.js"
-    );
 
-}
-*/
+    if ("serviceWorker" in navigator) {
+
+        window.addEventListener(
+            "load",
+            function() {
+
+                navigator.serviceWorker
+                    .register(
+                        "./service-worker.js",
+                        {
+                            updateViaCache: "none"
+                        }
+                    )
+                    .then(
+                        function(inscription) {
+
+                            console.log(
+                                "Service worker enregistré :",
+                                inscription.scope
+                            );
+
+                            inscription.update();
+                        }
+                    )
+                    .catch(
+                        function(erreur) {
+
+                            console.error(
+                                "Échec de l’enregistrement du service worker :",
+                                erreur
+                            );
+                        }
+                    );
+            }
+        );
+    }
+
+
 
     </script>
 
