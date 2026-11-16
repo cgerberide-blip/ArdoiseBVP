@@ -20,6 +20,9 @@
         }
 
         h1 {
+            margin-top: 0px;
+            margin-bottom: 12px;
+
             text-align: center;
             color: #333;
         }
@@ -407,17 +410,14 @@
         }
 
         #zoneSynchronisation {
-            margin-bottom: 18px;
-            padding: 12px;
-
-            background-color: #f4f8fc;
             border: 1px solid #c9dff2;
-            border-radius: 10px;
         }
 
-        #zoneSynchronisation h3 {
-            margin-top: 0;
+        #zoneSynchronisation h2 {
+            margin-bottom: 12px;
+            color: #1976d2;
         }
+    
 
         #etatSynchronisation {
             margin-bottom: 10px;
@@ -562,7 +562,11 @@
 
         @media (max-width: 600px) {
             body {
-                padding: 10px;
+                padding-top: 5px;
+                padding-right: 10px;
+                padding-bottom: 10px;
+                padding-left: 10px;
+
             }
 
             .ligne-recap {
@@ -693,13 +697,14 @@
     </div>
     
 
-    <div class="section" id="ongletProduits">
+    <div id="ongletProduits">
 
-        <h2>Gestion des produits</h2>
 
-        <div id="zoneSynchronisation">
+        <div
+            class="section"
+            id="zoneSynchronisation">
 
-            <h3>Synchronisation</h3>
+            <h2>Synchronisation</h2>
 
             <div id="etatSynchronisation">
                 Non connecté
@@ -795,32 +800,39 @@
 
         </div>
 
-        <hr>
 
-        <input
-            type="text"
-            id="nomProduit"
-            placeholder="Nom du produit">
+        <div class="section">
 
-        <input
-            type="number"
-            id="prixProduit"
-            placeholder="Prix">
+            <h2>Gestion des produits</h2>
 
-        <input
-            type="text"
-            id="emojiProduit"
-            placeholder="Emoji">
+            <input
+                type="text"
+                id="nomProduit"
+                placeholder="Nom du produit"
+            >
 
-        <button onclick="ajouterNouveauProduit()">
-            Ajouter
-        </button>
+            <input
+                type="number"
+                id="prixProduit"
+                placeholder="Prix"
+            >
 
-        <hr>
+            <input
+                type="text"
+                id="emojiProduit"
+                placeholder="Emoji"
+            >
 
-        <div id="listeProduits"></div>
+            <button onclick="ajouterNouveauProduit()">
+                Ajouter
+            </button>
 
-    
+            <hr>
+
+            <div id="listeProduits"></div>
+
+        </div>
+
 
     </div>
 
