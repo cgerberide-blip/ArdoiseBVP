@@ -214,9 +214,8 @@
             border: 1px solid #ccc;
         }
 
-        #historique div {
-            padding: 6px;
-            border-bottom: 1px solid #eee;
+        #historique {
+            margin-top: 10px;
         }
 
         .entete-historique {
@@ -228,6 +227,50 @@
 
         .entete-historique h2 {
             margin: 0;
+        }
+
+        .ligne-paiement {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+
+            margin-bottom: 4px;
+            padding: 4px 0;
+
+            border-bottom: 1px solid #eeeeee;
+        }
+
+        .paiement-informations {
+            flex: 1;
+            min-width: 0;
+
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .bouton-detail-paiement {
+            flex: 0 0 auto;
+
+            margin: 0;
+            padding: 6px 8px;
+
+            background-color: #e9f2fb;
+            color: #1976d2;
+
+            font-size: 14px;
+        }
+
+        .bouton-supprimer-paiement {
+            flex: 0 0 auto;
+
+            margin: 0;
+            padding: 4px 8px;
+
+            background-color: #d32f2f;
+            color: white;
+
+            font-size: 16px;
         }
 
         .bouton-supprimer-historique {
@@ -342,12 +385,14 @@
         }
 
         .details-paiement {
-
             margin-left: 24px;
-
-            padding-left: 12px;
-
+            padding: 6px 6px 6px 12px;
             border-left: 3px solid #1976d2;
+        }
+
+        .details-paiement div {
+            padding: 5px 0;
+            border-bottom: 1px solid #eeeeee;
         }
 
         .onglet-actif {
@@ -1224,30 +1269,108 @@
             historiquePaiements.forEach(function(paiement) {
 
                 const montant =
-                    paiement.montant ?? paiement.total ?? 0;
+                    paiement.montant ??
+                    paiement.total ??
+                    0;
 
-                const bloc =
+                const lignePaiement =
                     document.createElement("div");
 
-                bloc.style.marginBottom = "10px";
+                lignePaiement.className =
+                    "ligne-paiement";
 
-                bloc.innerHTML =
+                const informations =
+                    document.createElement("div");
 
-                    "<button id='toggle-" +
-                    paiement.id +
-                    "' onclick='afficherDetailPaiement(" +
-                    paiement.id +
-                    ")'>▶</button> " +
+                informations.className =
+                    "paiement-informations";
 
-                    formaterDateLongue(paiement.date) +
+                const boutonDetail =
+                    document.createElement("button");
 
+                boutonDetail.type =
+                    "button";
+
+                boutonDetail.id =
+                    "toggle-" + paiement.id;
+
+                boutonDetail.className =
+                    "bouton-detail-paiement";
+
+                boutonDetail.textContent =
+                    "▶";
+
+                boutonDetail.setAttribute(
+                    "aria-label",
+                    "Afficher le détail du paiement"
+                );
+
+                boutonDetail.onclick =
+                    function() {
+
+                        afficherDetailPaiement(
+                            paiement.id
+                        );
+                    };
+
+                const textePaiement =
+                    document.createElement("span");
+
+                textePaiement.textContent =
+                    formaterDateLongue(
+                        paiement.date
+                    ) +
                     " : " +
-
                     formaterMontant(montant) +
-
                     " €";
 
-                zoneHistorique.appendChild(bloc);
+                const boutonSupprimer =
+                    document.createElement("button");
+
+                boutonSupprimer.type =
+                    "button";
+
+                boutonSupprimer.className =
+                    "bouton-supprimer-paiement";
+
+                boutonSupprimer.textContent =
+                    "❌";
+
+                boutonSupprimer.setAttribute(
+                    "aria-label",
+                    "Supprimer ce paiement"
+                );
+
+                boutonSupprimer.title =
+                    "Supprimer ce paiement";
+
+                boutonSupprimer.onclick =
+                    function() {
+
+                        supprimerPaiement(
+                            paiement.id
+                        );
+                    };
+
+                informations.appendChild(
+                    boutonDetail
+                );
+
+                informations.appendChild(
+                    textePaiement
+                );
+
+                lignePaiement.appendChild(
+                    informations
+                );
+
+                lignePaiement.appendChild(
+                    boutonSupprimer
+                );
+
+                zoneHistorique.appendChild(
+                    lignePaiement
+                );
 
                 const details =
                     document.createElement("div");
@@ -1258,38 +1381,52 @@
                 details.className =
                     "details-paiement";
 
-                details.style.display = "none";
+                details.style.display =
+                    "none";
 
-                details.style.marginLeft = "30px";
+                if (
+                    paiement.details &&
+                    paiement.details.length > 0
+                ) {
 
-                if (paiement.details) {
+                    paiement.details.forEach(
+                        function(item) {
 
-                    paiement.details.forEach(function(item) {
+                            const ligne =
+                                document.createElement("div");
 
-                        const ligne =
-                            document.createElement("div");
+                            ligne.textContent =
+                                formaterDate(item.date) +
+                                " • " +
+                                item.nom +
+                                " • " +
+                                formaterMontant(
+                                    item.prix
+                                ) +
+                                " €";
 
-                        ligne.textContent =
+                            details.appendChild(
+                                ligne
+                            );
+                        }
+                    );
 
-                            formaterDate(item.date) +
+                } else {
 
-                            " • " +
+                    const message =
+                        document.createElement("div");
 
-                            item.nom +
+                    message.textContent =
+                        "Aucun détail disponible pour ce paiement.";
 
-                            " • " +
-
-                            formaterMontant(item.prix) +
-
-                            " €";
-
-                        details.appendChild(ligne);
-
-                    });
-
+                    details.appendChild(
+                        message
+                    );
                 }
 
-                zoneHistorique.appendChild(details);
+                zoneHistorique.appendChild(
+                    details
+                );
 
             });
                
@@ -1344,6 +1481,59 @@
 
             afficher();
 
+        }
+
+        function supprimerPaiement(id) {
+
+            const paiement =
+                historiquePaiements.find(
+                    function(element) {
+
+                        return element.id === id;
+                    }
+                );
+
+            if (!paiement) {
+
+                alert(
+                    "Ce paiement est introuvable."
+                );
+
+                return;
+            }
+
+            const montant =
+                paiement.montant ??
+                paiement.total ??
+                0;
+
+            const confirmation =
+                confirm(
+                    "Supprimer ce paiement ?\n\n" +
+                    formaterDateLongue(
+                        paiement.date
+                    ) +
+                    "\n" +
+                    formaterMontant(montant) +
+                    " €\n\n" +
+                    "Cette action est définitive."
+                );
+
+            if (!confirmation) {
+                return;
+            }
+
+            historiquePaiements =
+                historiquePaiements.filter(
+                    function(element) {
+
+                        return element.id !== id;
+                    }
+                );
+
+            sauvegarder();
+
+            afficher();
         }
 
         function reinitialiserHistorique() {
